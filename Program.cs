@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using SyncOverAsync.DataStore;
+using SyncOverAsync.Models;
 
 // Create builder
 var builder = WebApplication.CreateBuilder(args);
@@ -18,7 +19,14 @@ app.UseSwagger();
 app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "Sync Over Async API V1"));
 
 // Add routes
-app.MapGet("/", () => "Hello Sync Over Async Web API!");
-app.MapGet("/weatherforecast", async (WeatherDb db) => await db.Weather.ToListAsync());
+app.MapGet("/weatherforecastSync", (WeatherDb db) => db.GetWeather());
 
+// Initialize Data
+var weatherDb = app.Services.GetService<WeatherDb>();
+var summaries = new[] { "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching" };
+weatherDb?.Weather.AddRange(Enumerable.Range(1, 5).Select(index => new WeatherForecast(index, Random.Shared.Next(-20, 55), summaries[Random.Shared.Next(summaries.Length)])).ToArray());
+weatherDb?.SaveChanges();
+
+
+// Run
 app.Run();
