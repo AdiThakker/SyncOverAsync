@@ -35,7 +35,7 @@ internal record WeatherForecast(DateTime Date, int TemperatureC, string? Summary
 
     public static WeatherForecast[] GetWeather()
     {
-        var forecast = Enumerable.Range(1, 5).Select(index =>
+       var forecast = Enumerable.Range(1, 5).Select(index =>
        new WeatherForecast
        (
            DateTime.Now.AddDays(index),
@@ -48,27 +48,27 @@ internal record WeatherForecast(DateTime Date, int TemperatureC, string? Summary
 
     static ConcurrentDictionary<string, TaskCompletionSource<WeatherForecast[]>> requests = new ConcurrentDictionary<string, TaskCompletionSource<WeatherForecast[]>>();
 
-    public static async Task<WeatherForecast[]> GetWeatherAsync(string requestId)
+    public static async Task<WeatherForecast[]> GetWeatherAsync(string correlationId)
     {
-        TaskCompletionSource<WeatherForecast[]> tcs = new TaskCompletionSource<WeatherForecast[]>(requestId);
-        requests.TryAdd(requestId, tcs);
-        GetWeatherAsyncCompletion(requestId);
-       return await tcs.Task;
+        TaskCompletionSource<WeatherForecast[]> tcs = new TaskCompletionSource<WeatherForecast[]>(correlationId);
+        requests.TryAdd(correlationId, tcs);
+        await GetWeatherAsyncCompletion(correlationId);
+        return await tcs.Task;
     }
 
-    private static async Task GetWeatherAsyncCompletion(string requestId)
+    private static async Task GetWeatherAsyncCompletion(string correlationId)
     {
         // simulate background process such as listening on Service Bus topic / external call back, etc.
+        // this callback would retrieve the correlationid to signal completion of asynchronous task associated to the 
+        // synchronous request
         await Task.Delay(10000);
 
         // Get the tcs that matches the requestId
-        if (requests.TryGetValue(requestId, out TaskCompletionSource<WeatherForecast[]> tcs))
-        {
+        if (requests.TryGetValue(correlationId, out TaskCompletionSource<WeatherForecast[]> tcs))
             tcs.SetResult(GetWeather());
-        }
-
+        else
+            tcs.SetException(new Exception("Invalid request"));
     }
-
 }
 
 
